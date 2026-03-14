@@ -1,0 +1,101 @@
+import 'package:flutter/material.dart';
+import 'dart:convert';
+import 'package:shared_preferences/shared_preferences.dart';
+import '../models/models.dart';
+
+class NotebookProvider with ChangeNotifier {
+  List<Notebook> _notebooks = [];
+  
+  List<Notebook> get notebooks => _notebooks;
+
+  NotebookProvider() {
+    loadNotebooks();
+  }
+
+  Future<void> loadNotebooks() async {
+    final prefs = await SharedPreferences.getInstance();
+    final String? notebooksJson = prefs.getString('notebooks');
+    
+    if (notebooksJson != null) {
+      final List<dynamic> decoded = json.decode(notebooksJson);
+      _notebooks = decoded.map((json) => Notebook.fromJson(json)).toList();
+      notifyListeners();
+    }
+  }
+
+  Future<void> saveNotebooks() async {
+    final prefs = await SharedPreferences.getInstance();
+    final String encoded = json.encode(_notebooks.map((n) => n.toJson()).toList());
+    await prefs.setString('notebooks', encoded);
+  }
+
+  Future<void> addNotebook(Notebook notebook) async {
+    _notebooks.add(notebook);
+    await saveNotebooks();
+    notifyListeners();
+  }
+
+  Future<void> updateNotebook(Notebook notebook) async {
+    final index = _notebooks.indexWhere((n) => n.id == notebook.id);
+    if (index != -1) {
+      _notebooks[index] = notebook;
+      _notebooks[index].updatedAt = DateTime.now();
+      await saveNotebooks();
+      notifyListeners();
+    }
+  }
+
+  Future<void> deleteNotebook(String id) async {
+    _notebooks.removeWhere((n) => n.id == id);
+    await saveNotebooks();
+    notifyListeners();
+  }
+
+  Notebook? getNotebook(String id) {
+    try {
+      return _notebooks.firstWhere((n) => n.id == id);
+    } catch (e) {
+      return null;
+    }
+  }
+
+  Future<void> addSubdivision(String notebookId, Subdivision subdivision) async {
+    final notebook = getNotebook(notebookId);
+    if (notebook != null) {
+      notebook.subdivisions.add(subdivision);
+      await updateNotebook(notebook);
+    }
+  }
+
+  Future<void> updateSubdivision(String notebookId, Subdivision subdivision) async {
+    final notebook = getNotebook(notebookId);
+    if (notebook != null) {
+      final index = notebook.subdivisions.indexWhere((s) => s.id == subdivision.id);
+      if (index != -1) {
+        notebook.subdivisions[index] = subdivision;
+        notebook.subdivisions[index].updatedAt = DateTime.now();
+        await updateNotebook(notebook);
+      }
+    }
+  }
+
+  Future<void> deleteSubdivision(String notebookId, String subdivisionId) async {
+    final notebook = getNotebook(notebookId);
+    if (notebook != null) {
+      notebook.subdivisions.removeWhere((s) => s.id == subdivisionId);
+      await updateNotebook(notebook);
+    }
+  }
+
+  Subdivision? getSubdivision(String notebookId, String subdivisionId) {
+    final notebook = getNotebook(notebookId);
+    if (notebook != null) {
+      try {
+        return notebook.subdivisions.firstWhere((s) => s.id == subdivisionId);
+      } catch (e) {
+        return null;
+      }
+    }
+    return null;
+  }
+}

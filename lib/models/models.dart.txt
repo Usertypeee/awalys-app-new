@@ -1,0 +1,258 @@
+import 'package:flutter/material.dart';
+import 'package:uuid/uuid.dart';
+
+const uuid = Uuid();
+
+// Modelo de Caderno (Notebook)
+class Notebook {
+  final String id;
+  String title;
+  String emoji;
+  Color color;
+  bool isBold;
+  bool isItalic;
+  DateTime createdAt;
+  DateTime updatedAt;
+  List<Subdivision> subdivisions;
+
+  Notebook({
+    String? id,
+    required this.title,
+    this.emoji = '📓',
+    required this.color,
+    this.isBold = false,
+    this.isItalic = false,
+    DateTime? createdAt,
+    DateTime? updatedAt,
+    List<Subdivision>? subdivisions,
+  })  : id = id ?? uuid.v4(),
+        createdAt = createdAt ?? DateTime.now(),
+        updatedAt = updatedAt ?? DateTime.now(),
+        subdivisions = subdivisions ?? [];
+
+  Map<String, dynamic> toJson() => {
+        'id': id,
+        'title': title,
+        'emoji': emoji,
+        'color': color.value,
+        'isBold': isBold,
+        'isItalic': isItalic,
+        'createdAt': createdAt.toIso8601String(),
+        'updatedAt': updatedAt.toIso8601String(),
+      };
+
+  factory Notebook.fromJson(Map<String, dynamic> json) => Notebook(
+        id: json['id'],
+        title: json['title'],
+        emoji: json['emoji'],
+        color: Color(json['color']),
+        isBold: json['isBold'],
+        isItalic: json['isItalic'],
+        createdAt: DateTime.parse(json['createdAt']),
+        updatedAt: DateTime.parse(json['updatedAt']),
+      );
+}
+
+// Tipos de subdivisão
+enum SubdivisionType {
+  modulos('Módulos', '🧩'),
+  capitulos('Capítulos', '📖'),
+  aulas('Aulas', '🎓'),
+  topicos('Tópicos', '🗺️'),
+  episodios('Episódios', '🎙️'),
+  sessoes('Sessões', '🧠'),
+  fases('Fases', '🏁'),
+  partes('Partes', '📑'),
+  fichas('Fichas', '🃏'),
+  sprints('Sprints', '⏱️');
+
+  final String label;
+  final String icon;
+  const SubdivisionType(this.label, this.icon);
+}
+
+// Modelo de Subdivisão
+class Subdivision {
+  final String id;
+  String title;
+  SubdivisionType type;
+  String notebookId;
+  DateTime createdAt;
+  DateTime updatedAt;
+  List<Note> notes;
+
+  Subdivision({
+    String? id,
+    required this.title,
+    required this.type,
+    required this.notebookId,
+    DateTime? createdAt,
+    DateTime? updatedAt,
+    List<Note>? notes,
+  })  : id = id ?? uuid.v4(),
+        createdAt = createdAt ?? DateTime.now(),
+        updatedAt = updatedAt ?? DateTime.now(),
+        notes = notes ?? [];
+
+  Map<String, dynamic> toJson() => {
+        'id': id,
+        'title': title,
+        'type': type.name,
+        'notebookId': notebookId,
+        'createdAt': createdAt.toIso8601String(),
+        'updatedAt': updatedAt.toIso8601String(),
+      };
+
+  factory Subdivision.fromJson(Map<String, dynamic> json) => Subdivision(
+        id: json['id'],
+        title: json['title'],
+        type: SubdivisionType.values.firstWhere((e) => e.name == json['type']),
+        notebookId: json['notebookId'],
+        createdAt: DateTime.parse(json['createdAt']),
+        updatedAt: DateTime.parse(json['updatedAt']),
+      );
+}
+
+// Modelo de Nota
+class Note {
+  final String id;
+  String title;
+  String subdivisionId;
+  DateTime createdAt;
+  DateTime updatedAt;
+  List<SmartBlock> blocks;
+
+  Note({
+    String? id,
+    required this.title,
+    required this.subdivisionId,
+    DateTime? createdAt,
+    DateTime? updatedAt,
+    List<SmartBlock>? blocks,
+  })  : id = id ?? uuid.v4(),
+        createdAt = createdAt ?? DateTime.now(),
+        updatedAt = updatedAt ?? DateTime.now(),
+        blocks = blocks ?? [];
+
+  Map<String, dynamic> toJson() => {
+        'id': id,
+        'title': title,
+        'subdivisionId': subdivisionId,
+        'createdAt': createdAt.toIso8601String(),
+        'updatedAt': updatedAt.toIso8601String(),
+        'blocks': blocks.map((b) => b.toJson()).toList(),
+      };
+
+  factory Note.fromJson(Map<String, dynamic> json) => Note(
+        id: json['id'],
+        title: json['title'],
+        subdivisionId: json['subdivisionId'],
+        createdAt: DateTime.parse(json['createdAt']),
+        updatedAt: DateTime.parse(json['updatedAt']),
+        blocks: (json['blocks'] as List?)
+                ?.map((b) => SmartBlock.fromJson(b))
+                .toList() ??
+            [],
+      );
+}
+
+// Tipos de Blocos Inteligentes
+enum BlockType {
+  introducao('Introdução', '📌', Color(0xFF4A90D9)),
+  desenvolvimento('Desenvolvimento', '📝', Color(0xFF5B8C5A)),
+  conclusao('Conclusão', '🏁', Color(0xFF7B5EA7)),
+  resumo('Resumo', '🔄', Color(0xFFE8A838)),
+  conceito('Conceito', '💡', Color(0xFFF0C040)),
+  definicao('Definição', '📖', Color(0xFF5BC0EB)),
+  argumento('Argumento', '⚖️', Color(0xFF8B2635)),
+  analogia('Analogia', '🔁', Color(0xFF2ABFBF)),
+  citacao('Citação', '💬', Color(0xFF555F6E)),
+  formula('Fórmula', '🔢', Color(0xFFE07B39)),
+  teorema('Teorema', '📐', Color(0xFF3D4DB7)),
+  hipotese('Hipótese', '🧪', Color(0xFF88B04B)),
+  lei('Lei/Princípio', '📏', Color(0xFFC0392B)),
+  linhaTempo('Linha do Tempo', '🗺️', Color(0xFFA0785A)),
+  regra('Regra', '📜', Color(0xFF1A936F)),
+  excecao('Exceção', '❗', Color(0xFFF4A261)),
+  flashcard('Flashcard', '🃏', Color(0xFFE84393)),
+  comparacao('Comparação', '🧩', Color(0xFF6C5CE7)),
+  exercicio('Exercício', '🏋️', Color(0xFF2C3E7A)),
+  mnemonico('Mnemônico', '🧠', Color(0xFFFFD166)),
+  atencao('Atenção', '🔴', Color(0xFFE74C3C)),
+  importante('Importante', '🟡', Color(0xFFF39C12)),
+  dica('Dica', '🟢', Color(0xFF27AE60)),
+  observacao('Observação', '🔵', Color(0xFF3498DB)),
+  blocoTextual('Bloco Textual', '🟦', Color(0xFF95A5A6));
+
+  final String label;
+  final String icon;
+  final Color color;
+  const BlockType(this.label, this.icon, this.color);
+}
+
+// Modelo de Bloco Inteligente
+class SmartBlock {
+  final String id;
+  BlockType type;
+  String content;
+  Map<String, dynamic> metadata;
+  DateTime createdAt;
+  DateTime updatedAt;
+
+  SmartBlock({
+    String? id,
+    required this.type,
+    this.content = '',
+    Map<String, dynamic>? metadata,
+    DateTime? createdAt,
+    DateTime? updatedAt,
+  })  : id = id ?? uuid.v4(),
+        metadata = metadata ?? {},
+        createdAt = createdAt ?? DateTime.now(),
+        updatedAt = updatedAt ?? DateTime.now();
+
+  Map<String, dynamic> toJson() => {
+        'id': id,
+        'type': type.name,
+        'content': content,
+        'metadata': metadata,
+        'createdAt': createdAt.toIso8601String(),
+        'updatedAt': updatedAt.toIso8601String(),
+      };
+
+  factory SmartBlock.fromJson(Map<String, dynamic> json) => SmartBlock(
+        id: json['id'],
+        type: BlockType.values.firstWhere((e) => e.name == json['type']),
+        content: json['content'],
+        metadata: json['metadata'] ?? {},
+        createdAt: DateTime.parse(json['createdAt']),
+        updatedAt: DateTime.parse(json['updatedAt']),
+      );
+}
+
+// Modelo para análise Awalys
+class AwalysAnalysis {
+  final String word;
+  final String definition;
+  final String contextUsage;
+  final String etymology;
+  final List<String> relatedTerms;
+  final List<String> synonyms;
+  final List<String> antonyms;
+  final String curiosity;
+  final String discursiveRole;
+  final List<String> references;
+
+  AwalysAnalysis({
+    required this.word,
+    required this.definition,
+    required this.contextUsage,
+    required this.etymology,
+    required this.relatedTerms,
+    required this.synonyms,
+    required this.antonyms,
+    required this.curiosity,
+    required this.discursiveRole,
+    required this.references,
+  });
+}

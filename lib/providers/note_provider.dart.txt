@@ -1,0 +1,105 @@
+import 'package:flutter/material.dart';
+import 'dart:convert';
+import 'package:shared_preferences/shared_preferences.dart';
+import '../models/models.dart';
+
+class NoteProvider with ChangeNotifier {
+  List<Note> _notes = [];
+  
+  List<Note> get notes => _notes;
+
+  NoteProvider() {
+    loadNotes();
+  }
+
+  Future<void> loadNotes() async {
+    final prefs = await SharedPreferences.getInstance();
+    final String? notesJson = prefs.getString('notes');
+    
+    if (notesJson != null) {
+      final List<dynamic> decoded = json.decode(notesJson);
+      _notes = decoded.map((json) => Note.fromJson(json)).toList();
+      notifyListeners();
+    }
+  }
+
+  Future<void> saveNotes() async {
+    final prefs = await SharedPreferences.getInstance();
+    final String encoded = json.encode(_notes.map((n) => n.toJson()).toList());
+    await prefs.setString('notes', encoded);
+  }
+
+  Future<void> addNote(Note note) async {
+    _notes.add(note);
+    await saveNotes();
+    notifyListeners();
+  }
+
+  Future<void> updateNote(Note note) async {
+    final index = _notes.indexWhere((n) => n.id == note.id);
+    if (index != -1) {
+      _notes[index] = note;
+      _notes[index].updatedAt = DateTime.now();
+      await saveNotes();
+      notifyListeners();
+    }
+  }
+
+  Future<void> deleteNote(String id) async {
+    _notes.removeWhere((n) => n.id == id);
+    await saveNotes();
+    notifyListeners();
+  }
+
+  Note? getNote(String id) {
+    try {
+      return _notes.firstWhere((n) => n.id == id);
+    } catch (e) {
+      return null;
+    }
+  }
+
+  List<Note> getNotesBySubdivision(String subdivisionId) {
+    return _notes.where((n) => n.subdivisionId == subdivisionId).toList();
+  }
+
+  Future<void> addBlock(String noteId, SmartBlock block) async {
+    final note = getNote(noteId);
+    if (note != null) {
+      note.blocks.add(block);
+      await updateNote(note);
+    }
+  }
+
+  Future<void> updateBlock(String noteId, SmartBlock block) async {
+    final note = getNote(noteId);
+    if (note != null) {
+      final index = note.blocks.indexWhere((b) => b.id == block.id);
+      if (index != -1) {
+        note.blocks[index] = block;
+        note.blocks[index].updatedAt = DateTime.now();
+        await updateNote(note);
+      }
+    }
+  }
+
+  Future<void> deleteBlock(String noteId, String blockId) async {
+    final note = getNote(noteId);
+    if (note != null) {
+      note.blocks.removeWhere((b) => b.id == blockId);
+      await updateNote(note);
+    }
+  }
+
+  Future<void> reorderBlocks(String noteId, int oldIndex, int newIndex) async {
+    final note = getNote(noteId);
+    if (note != null) {
+      if (newIndex > oldIndex) {
+        newIndex -= 1;
+      }
+      final block = note.blocks.removeAt(oldIndex);
+      note.blocks.insert(newIndex, block);
+      await updateNote(note);
+    }
+  }
+}
